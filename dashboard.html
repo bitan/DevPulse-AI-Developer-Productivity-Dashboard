@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DevPulse Productivity Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- Tailwind CSS via CDN (dark theme) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              slate: {
+                950: '#020617',
+              },
+            },
+          },
+        },
+        darkMode: 'class',
+      };
+    </script>
+
+    <!-- React + ReactDOM (UMD) -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+    <!-- Recharts UMD bundle -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/3.2.1/Recharts.min.js"></script>
+
+    <!-- Your exported logs (defines window.DEVPULSE_LOGS) -->
+    <script src="./logs.js"></script>
+
+    <!-- Babel for JSX in the browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  </head>
+
+  <body class="bg-slate-950 text-slate-100">
+    <div id="root"></div>
+
+    <script type="text/javascript">
+      window.addEventListener('load', function () {
+        // Expect React, ReactDOM, and Recharts to be available from the CDNs above.
+        const {
+          LineChart,
+          Line,
+          XAxis,
+          YAxis,
+          Tooltip,
+          CartesianGrid,
+          ResponsiveContainer,
+          BarChart,
+          Bar,
+          Legend,
+        } = window.Recharts;
+
+        function buildDailyActivity(logs) {
+          const byDate = logs.reduce((acc, log) => {
+            if (!log.timestamp) return acc;
+            const date = log.timestamp.slice(0, 10); // YYYY-MM-DD
+            if (!acc[date]) acc[date] = { date: date, commands: 0 };
+            acc[date].commands += 1;
+            return acc;
+          }, {});
+          return Object.values(byDate).sort(function (a, b) {
+            return a.date.localeCompare(b.date);
+          });
+        }
+
+        function buildToolUsage(logs) {
+          const byTool = logs.reduce((acc, log) => {
+            const tool = log.toolType || 'other';
+            if (!acc[tool]) acc[tool] = { tool: tool, count: 0 };
+            acc[tool].count += 1;
+            return acc;
+          }, {});
+          return Object.values(byTool).sort(function (a, b) {
+            return b.count - a.count;
+          });
+        }
+
+        function ProductivityDashboard() {
+          const logs = window.DEVPULSE_LOGS || [];
+          const dailyActivity = buildDailyActivity(logs);
+          const toolUsage = buildToolUsage(logs);
+
+          return React.createElement(
+            'div',
+            { className: 'min-h-screen bg-slate-950 text-slate-100 px-6 py-8' },
+            React.createElement(
+              'div',
+              { className: 'max-w-6xl mx-auto space-y-8' },
+              // Header
+              React.createElement(
+                'header',
+                {
+                  className:
+                    'flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4',
+                },
+                React.createElement(
+                  'div',
+                  null,
+                  React.createElement(
+                    'h1',
+                    { className: 'text-2xl font-semibold text-slate-50' },
+                    'Developer Productivity'
+                  ),
+                  React.createElement(
+                    'p',
+                    { className: 'text-sm text-slate-400' },
+                    'Daily coding activity and tool usage from devpulse-track logs.'
+                  )
+                )
+              ),
+              // Charts grid
+              React.createElement(
+                'div',
+                { className: 'grid gap-6 md:grid-cols-2' },
+                // Daily Coding Activity (Line)
+                React.createElement(
+                  'section',
+                  {
+                    className:
+                      'bg-slate-900/80 border border-slate-800 rounded-xl shadow-lg p-4 flex flex-col',
+                  },
+                  React.createElement(
+                    'h2',
+                    { className: 'text-sm font-medium text-slate-200 mb-2' },
+                    'Daily Coding Activity'
+                  ),
+                  React.createElement(
+                    'p',
+                    { className: 'text-xs text-slate-400 mb-4' },
+                    'Number of tracked commands per day.'
+                  ),
+                  React.createElement(
+                    'div',
+                    { className: 'flex-1 min-h-[260px]' },
+                    React.createElement(
+                      ResponsiveContainer,
+                      { width: '100%', height: '100%' },
+                      React.createElement(
+                        LineChart,
+                        {
+                          data: dailyActivity,
+                          margin: { top: 10, right: 20, left: 0, bottom: 10 },
+                        },
+                        React.createElement(CartesianGrid, {
+                          strokeDasharray: '3 3',
+                          stroke: '#1e293b',
+                        }),
+                        React.createElement(XAxis, {
+                          dataKey: 'date',
+                          tick: { fill: '#9ca3af', fontSize: 11 },
+                          tickLine: { stroke: '#4b5563' },
+                          axisLine: { stroke: '#4b5563' },
+                        }),
+                        React.createElement(YAxis, {
+                          tick: { fill: '#9ca3af', fontSize: 11 },
+                          tickLine: { stroke: '#4b5563' },
+                          axisLine: { stroke: '#4b5563' },
+                          allowDecimals: false,
+                        }),
+                        React.createElement(Tooltip, {
+                          contentStyle: {
+                            backgroundColor: '#020617',
+                            border: '1px solid #1e293b',
+                            borderRadius: '0.5rem',
+                            color: '#e5e7eb',
+                            fontSize: '0.75rem',
+                          },
+                        }),
+                        React.createElement(Line, {
+                          type: 'monotone',
+                          dataKey: 'commands',
+                          stroke: '#38bdf8',
+                          strokeWidth: 2,
+                          dot: {
+                            r: 3,
+                            stroke: '#0f172a',
+                            strokeWidth: 1,
+                            fill: '#38bdf8',
+                          },
+                          activeDot: { r: 5 },
+                        })
+                      )
+                    )
+                  )
+                ),
+                // Tool Usage (Bar)
+                React.createElement(
+                  'section',
+                  {
+                    className:
+                      'bg-slate-900/80 border border-slate-800 rounded-xl shadow-lg p-4 flex flex-col',
+                  },
+                  React.createElement(
+                    'h2',
+                    { className: 'text-sm font-medium text-slate-200 mb-2' },
+                    'Tool Usage'
+                  ),
+                  React.createElement(
+                    'p',
+                    { className: 'text-xs text-slate-400 mb-4' },
+                    'Frequency of commands per tool type.'
+                  ),
+                  React.createElement(
+                    'div',
+                    { className: 'flex-1 min-h-[260px]' },
+                    React.createElement(
+                      ResponsiveContainer,
+                      { width: '100%', height: '100%' },
+                      React.createElement(
+                        BarChart,
+                        {
+                          data: toolUsage,
+                          margin: { top: 10, right: 20, left: 0, bottom: 10 },
+                        },
+                        React.createElement(CartesianGrid, {
+                          strokeDasharray: '3 3',
+                          stroke: '#1e293b',
+                        }),
+                        React.createElement(XAxis, {
+                          dataKey: 'tool',
+                          tick: { fill: '#9ca3af', fontSize: 11 },
+                          tickLine: { stroke: '#4b5563' },
+                          axisLine: { stroke: '#4b5563' },
+                        }),
+                        React.createElement(YAxis, {
+                          tick: { fill: '#9ca3af', fontSize: 11 },
+                          tickLine: { stroke: '#4b5563' },
+                          axisLine: { stroke: '#4b5563' },
+                          allowDecimals: false,
+                        }),
+                        React.createElement(Tooltip, {
+                          contentStyle: {
+                            backgroundColor: '#020617',
+                            border: '1px solid #1e293b',
+                            borderRadius: '0.5rem',
+                            color: '#e5e7eb',
+                            fontSize: '0.75rem',
+                          },
+                        }),
+                        React.createElement(Legend, {
+                          wrapperStyle: { fontSize: '0.75rem' },
+                          formatter: function (value) {
+                            return React.createElement(
+                              'span',
+                              { style: { color: '#e5e7eb' } },
+                              value
+                            );
+                          },
+                        }),
+                        React.createElement(Bar, {
+                          dataKey: 'count',
+                          name: 'Commands',
+                          radius: [4, 4, 0, 0],
+                          fill: '#4ade80',
+                        })
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          );
+        }
+
+        const rootElement = document.getElementById('root');
+        ReactDOM.createRoot(rootElement).render(
+          React.createElement(ProductivityDashboard)
+        );
+      });
+    </script>
+  </body>
+</html>
+
